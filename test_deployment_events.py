@@ -3,57 +3,40 @@ import pandas as pd
 from core.deployment_events import generate_deployment_events
 
 
-# Load evaluated releases
-df = pd.read_csv(
-    "data/releases_evaluated.csv"
-)
+def test_deployment_events_generated():
+    df = pd.read_csv("data/releases_evaluated.csv")
+
+    events = generate_deployment_events(df)
+
+    assert events is not None
+    assert len(events) > 0
 
 
-# Generate deployment history
-events = generate_deployment_events(df)
+def test_deployment_event_columns():
+    df = pd.read_csv("data/releases_evaluated.csv")
+
+    events = generate_deployment_events(df)
+
+    required_columns = [
+        "release_id",
+        "hospital_id",
+        "version",
+        "event_type",
+        "decision",
+        "timestamp",
+    ]
+
+    for column in required_columns:
+        assert column in events.columns
 
 
-print("=" * 70)
-print("DEPLOYMENT EVENT TEST")
-print("=" * 70)
+def test_deployment_events_match_records():
+    df = pd.read_csv("data/releases_evaluated.csv")
 
+    events = generate_deployment_events(df)
 
-print("\nTotal release records:")
-print(len(df))
+    assert len(events) >= len(df)
 
-
-print("\nTotal deployment events:")
-print(len(events))
-
-
-print("\nEvent types:")
-print(
-    events["event_type"].value_counts()
-)
-
-
-print("\nSample events:")
-
-print(
-    events[
-        [
-            "release_id",
-            "hospital_id",
-            "version",
-            "event_type",
-            "decision",
-            "timestamp"
-        ]
-    ].head(20).to_string(index=False)
-)
-
-
-# Save event log
-events.to_csv(
-    "data/deployment_events.csv",
-    index=False
-)
-
-
-print("\nSaved:")
-print("data/deployment_events.csv")
+    assert events["release_id"].notna().all()
+    assert events["hospital_id"].notna().all()
+    assert events["version"].notna().all()

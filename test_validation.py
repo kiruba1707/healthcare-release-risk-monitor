@@ -1,24 +1,29 @@
 import pandas as pd
 
-from core.data_validator import validate_dataset
+from core.noise_handler import clean_dataset
 
 
-df = pd.read_csv("data/releases_raw.csv")
+def test_clean_dataset_preserves_row_count():
+    df = pd.read_csv("data/releases_raw.csv")
 
-results = validate_dataset(df)
+    result = clean_dataset(df)
 
-print("=" * 50)
-print("DATASET VALIDATION REPORT")
-print("=" * 50)
+    assert len(result) == len(df)
 
-print("\nColumns valid:")
-print(results["valid_columns"])
 
-print("\nMissing columns:")
-print(results["missing_columns"])
+def test_clean_dataset_creates_quality_flags():
+    df = pd.read_csv("data/releases_raw.csv")
 
-print("\nRange problems:")
-print(results["range_problems"])
+    result = clean_dataset(df)
 
-print("\nMissing values:")
-print(results["missing_values"])
+    assert "missing_metric" in result.columns
+    assert "noisy_metric" in result.columns
+
+
+def test_quality_flags_are_boolean():
+    df = pd.read_csv("data/releases_raw.csv")
+
+    result = clean_dataset(df)
+
+    assert result["missing_metric"].dtype == bool
+    assert result["noisy_metric"].dtype == bool

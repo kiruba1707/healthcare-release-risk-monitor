@@ -1,83 +1,59 @@
-from core.store_forward import (
-    store_event,
-    get_buffered_events,
-    forward_events
-)
+import core.store_forward as store_forward
 
 
-print("=" * 60)
-print("STORE-AND-FORWARD TEST")
-print("=" * 60)
+def test_store_event():
+    store_forward._save_buffer([])
+
+    event = {
+        "release_id": "R001",
+        "hospital_id": "H001",
+        "decision": "BLOCK"
+    }
+
+    result = store_forward.store_event(event)
+
+    assert result is True
+
+    buffered = store_forward.get_buffered_events()
+
+    assert len(buffered) == 1
+    assert buffered[0]["release_id"] == "R001"
+    assert "stored_at" in buffered[0]
+
+    store_forward._save_buffer([])
 
 
-# Simulated monitoring event
-event = {
-    "release_id": "RTEST01",
-    "hospital_id": "H001",
-    "version": "v3.0",
-    "error_rate": 7.2,
-    "latency_ms": 650
-}
+def test_forward_when_server_offline():
+    store_forward._save_buffer([])
+
+    store_forward.store_event({
+        "release_id": "R002",
+        "hospital_id": "H002",
+        "decision": "HOLD"
+    })
+
+    result = store_forward.forward_events(server_available=False)
+
+    assert result["status"] == "OFFLINE"
+    assert result["forwarded"] == 0
+    assert result["remaining"] == 1
+
+    store_forward._save_buffer([])
 
 
-# --------------------------------------------------
-# STEP 1 — Network unavailable
-# --------------------------------------------------
+def test_forward_when_server_available():
+    store_forward._save_buffer([])
 
-print("\n[1] Network unavailable")
+    store_forward.store_event({
+        "release_id": "R003",
+        "hospital_id": "H003",
+        "decision": "SAFE"
+    })
 
-result = forward_events(
-    server_available=False
-)
+    result = store_forward.forward_events(server_available=True)
 
-print(result)
+    assert result["status"] == "FORWARDED"
+    assert result["forwarded"] == 1
+    assert result["remaining"] == 0
 
-
-# --------------------------------------------------
-# STEP 2 — Store event locally
-# --------------------------------------------------
-
-print("\n[2] Storing event locally")
-
-store_event(event)
-
-print("Event stored successfully.")
-
-
-# --------------------------------------------------
-# STEP 3 — Check local buffer
-# --------------------------------------------------
-
-buffer = get_buffered_events()
-
-print("\n[3] Buffered events:")
-print(len(buffer))
-
-for item in buffer:
-    print(item)
-
-
-# --------------------------------------------------
-# STEP 4 — Network restored
-# --------------------------------------------------
-
-print("\n[4] Network restored")
-
-result = forward_events(
-    server_available=True
-)
-
-print(result)
-
-
-# --------------------------------------------------
-# STEP 5 — Verify buffer
-# --------------------------------------------------
-
-buffer = get_buffered_events()
-
-print("\n[5] Remaining buffered events:")
-print(len(buffer))
-
-
-print("\nStore-and-forward test completed.")
+    assert store_forward.get_buffered_events() == []

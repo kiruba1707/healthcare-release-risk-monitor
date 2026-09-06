@@ -1,61 +1,56 @@
 import pandas as pd
 
-from core.progressive_delivery import (
-    simulate_all_releases
-)
+from core.progressive_delivery import simulate_all_releases
 
 
-# Load evaluated releases
-df = pd.read_csv(
-    "data/releases_evaluated.csv"
-)
+def load_evaluated_data():
+    return pd.read_csv("data/releases_evaluated.csv")
 
 
-# Simulate rollout
-rollout_events = simulate_all_releases(df)
+def test_rollout_events_generated():
+    df = load_evaluated_data()
+
+    rollout_events = simulate_all_releases(df)
+
+    assert len(rollout_events) > 0
 
 
-print("=" * 70)
-print("PROGRESSIVE DELIVERY TEST")
-print("=" * 70)
+def test_rollout_required_columns():
+    df = load_evaluated_data()
+
+    rollout_events = simulate_all_releases(df)
+
+    required_columns = [
+        "release_id",
+        "hospital_id",
+        "version",
+        "action",
+        "rollout_percentage",
+    ]
+
+    for column in required_columns:
+        assert column in rollout_events.columns
 
 
-print("\nTotal releases:")
-print(len(df))
+def test_rollout_percentages():
+    df = load_evaluated_data()
 
+    rollout_events = simulate_all_releases(df)
 
-print("\nTotal rollout events:")
-print(len(rollout_events))
+    valid_percentages = {5, 25, 50, 100}
 
-
-print("\nRollout actions:")
-print(
-    rollout_events["action"].value_counts()
-)
-
-
-print("\nRollout percentages:")
-print(
-    rollout_events["rollout_percentage"].value_counts()
-)
-
-
-print("\nSample:")
-print(
-    rollout_events.head(20).to_string(
-        index=False
+    assert set(rollout_events["rollout_percentage"].unique()).issubset(
+        valid_percentages
     )
-)
 
 
-# Save result
-rollout_events.to_csv(
-    "data/progressive_rollout_events.csv",
-    index=False
-)
+def test_rollout_actions():
+    df = load_evaluated_data()
 
+    rollout_events = simulate_all_releases(df)
 
-print("\nSaved:")
-print(
-    "data/progressive_rollout_events.csv"
-)
+    valid_actions = {"CONTINUE", "HOLD", "STOP"}
+
+    assert set(rollout_events["action"].unique()).issubset(
+        valid_actions
+    )

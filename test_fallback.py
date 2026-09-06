@@ -5,50 +5,32 @@ from core.error_budget import calculate_error_budget_risk
 from core.fallback import apply_fallback
 
 
-# Load dataset
-df = pd.read_csv("data/releases_raw.csv")
+def prepare_fallback_data():
+    df = pd.read_csv("data/releases_raw.csv")
+
+    df = clean_dataset(df)
+    df = calculate_error_budget_risk(df)
+    df = apply_fallback(df)
+
+    return df
 
 
-# Step 1: detect missing/noisy observations
-df = clean_dataset(df)
+def test_error_budget_calculation():
+    df = prepare_fallback_data()
+
+    assert "error_budget_status" in df.columns
+    assert df["error_budget_status"].notna().all()
 
 
-# Step 2: calculate error-budget status
-df = calculate_error_budget_risk(df)
+def test_fallback_action_generated():
+    df = prepare_fallback_data()
+
+    assert "fallback_action" in df.columns
+    assert df["fallback_action"].notna().all()
 
 
-# Step 3: apply fallback behaviour
-df = apply_fallback(df)
+def test_fallback_preserves_dataset_size():
+    original = pd.read_csv("data/releases_raw.csv")
+    result = prepare_fallback_data()
 
-
-print("=" * 60)
-print("FALLBACK + ERROR BUDGET TEST")
-print("=" * 60)
-
-
-print("\nError Budget Status:")
-print(
-    df["error_budget_status"].value_counts()
-)
-
-
-print("\nFallback Actions:")
-print(
-    df["fallback_action"].value_counts()
-)
-
-
-print("\nSample:")
-print(
-    df[
-        [
-            "release_id",
-            "hospital_id",
-            "error_budget_remaining",
-            "error_budget_status",
-            "missing_metric",
-            "noisy_metric",
-            "fallback_action"
-        ]
-    ].head(15)
-)
+    assert len(result) == len(original)

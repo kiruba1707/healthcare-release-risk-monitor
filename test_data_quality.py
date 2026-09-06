@@ -6,34 +6,27 @@ from core.noise_handler import (
 )
 
 
-df = pd.read_csv("data/releases_raw.csv")
+def test_data_quality_cleaning():
+    df = pd.read_csv("data/releases_raw.csv")
 
-cleaned_df = clean_dataset(df)
+    cleaned_df = clean_dataset(df)
 
-summary = get_data_quality_summary(cleaned_df)
+    assert len(cleaned_df) == len(df)
+    assert "missing_metric" in cleaned_df.columns
+    assert "noisy_metric" in cleaned_df.columns
 
 
-print("=" * 50)
-print("DATA QUALITY REPORT")
-print("=" * 50)
+def test_data_quality_summary():
+    df = pd.read_csv("data/releases_raw.csv")
 
-print("\nTotal rows:")
-print(summary["total_rows"])
+    cleaned_df = clean_dataset(df)
+    summary = get_data_quality_summary(cleaned_df)
 
-print("\nRows with missing metrics:")
-print(summary["rows_with_missing_metrics"])
+    assert "total_rows" in summary
+    assert "rows_with_missing_metrics" in summary
+    assert "rows_with_noisy_metrics" in summary
 
-print("\nRows with noisy metrics:")
-print(summary["rows_with_noisy_metrics"])
+    assert summary["total_rows"] == len(cleaned_df)
 
-print("\nSample:")
-print(
-    cleaned_df[
-        [
-            "release_id",
-            "hospital_id",
-            "missing_metric",
-            "noisy_metric"
-        ]
-    ].head(10)
-)
+    assert summary["rows_with_missing_metrics"] >= 0
+    assert summary["rows_with_noisy_metrics"] >= 0

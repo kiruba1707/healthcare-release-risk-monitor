@@ -8,6 +8,7 @@ from core.error_budget import calculate_error_budget_risk
 from core.canary import calculate_canary_risk
 from core.fallback import apply_fallback
 from core.risk_engine import evaluate_dataset
+from core.auth import authenticate, has_permission
 
 
 # ==========================================================
@@ -28,6 +29,151 @@ st.set_page_config(
     layout="wide"
 )
 
+
+# ==========================================================
+# AUTHENTICATION
+# ==========================================================
+
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+
+if "user" not in st.session_state:
+    st.session_state.user = None
+if "monitoring_observation" not in st.session_state:
+    st.session_state.monitoring_observation = None    
+
+
+def show_login_page():
+    st.title("🔐 Healthcare Release Risk Monitor")
+    st.subheader("Secure Login")
+
+    st.write("Please sign in to access the monitoring dashboard.")
+
+    with st.form("login_form"):
+        username = st.text_input("Username")
+        password = st.text_input(
+            "Password",
+            type="password"
+        )
+
+        submitted = st.form_submit_button(
+            "Login",
+            use_container_width=True
+        )
+
+        if submitted:
+            user = authenticate(username, password)
+
+            if user:
+                st.session_state.authenticated = True
+                st.session_state.user = user
+                st.rerun()
+
+            else:
+                st.error("❌ Invalid username or password")
+
+
+if not st.session_state.authenticated:
+    show_login_page()
+    st.stop()
+
+
+
+  # ==========================================================
+# ACCOUNT + LOGOUT
+# ==========================================================
+
+with st.sidebar:
+
+    st.write(
+        f"👤 **{st.session_state.user['username']}**"
+    )
+
+    st.caption(
+        f"Role: {st.session_state.user['role']}"
+    )
+
+    st.divider()
+
+    with st.expander("⚙️ Account Settings"):
+
+        new_username = st.text_input(
+            "New Username",
+            value=st.session_state.user["username"],
+            key="new_username"
+        )
+
+        current_password = st.text_input(
+            "Current Password",
+            type="password",
+            key="current_password"
+        )
+
+        new_password = st.text_input(
+            "New Password",
+            type="password",
+            key="new_password"
+        )
+
+        confirm_password = st.text_input(
+            "Confirm New Password",
+            type="password",
+            key="confirm_password"
+        )
+
+        if st.button(
+            "💾 Save Changes",
+            use_container_width=True
+        ):
+
+            if not current_password:
+                st.error("Enter your current password.")
+
+            elif new_password and new_password != confirm_password:
+                st.error("New passwords do not match.")
+
+            elif new_password and len(new_password) < 6:
+                st.error(
+                    "New password must contain at least 6 characters."
+                )
+
+            else:
+                from core.auth import change_credentials
+
+                success, result = change_credentials(
+                    current_username=st.session_state.user["username"],
+                    current_password=current_password,
+                    new_username=new_username,
+                    new_password=new_password
+                )
+
+                if success:
+                    st.session_state.user["username"] = result
+
+                    st.success(
+                        "Account details updated successfully."
+                    )
+
+                    st.rerun()
+
+                else:
+                    st.error(result)
+
+    st.divider()
+
+    if st.button(
+        "🚪 Logout",
+        use_container_width=True
+    ):
+        st.session_state.authenticated = False
+        st.session_state.user = None
+
+        st.session_state.pop(
+            "monitoring_observation",
+            None
+        )
+
+        st.rerun()
 
 # ==========================================================
 # COMMON RISK PIPELINE
@@ -620,7 +766,7 @@ st.subheader("📈 Health Metrics")
 
 display_row = (
     st.session_state.monitoring_observation
-    if st.session_state.monitoring_observation is not None
+    if st.session_state.get("monitoring_observation") is not None
     else selected
 )
 

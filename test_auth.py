@@ -1,113 +1,48 @@
-from core.auth import (
-    authenticate,
-    has_permission
-)
+from core.auth import authenticate, has_permission
 
 
-print("=" * 70)
-print("ROLE-BASED ACCESS CONTROL TEST")
-print("=" * 70)
+def test_release_engineer_login():
+    user = authenticate("release_engineer", "release123")
+
+    assert user is not None
+    assert user["role"] == "release_engineer"
 
 
-# --------------------------------------------------
-# Test 1 — Release Engineer login
-# --------------------------------------------------
+def test_operations_admin_login():
+    admin = authenticate("operations_admin", "admin123")
 
-user = authenticate(
-    "release_engineer",
-    "release123"
-)
-
-print("\nRelease Engineer login:")
-print(user)
+    assert admin is not None
+    assert admin["role"] == "operations_admin"
 
 
-# --------------------------------------------------
-# Test 2 — Operations Admin login
-# --------------------------------------------------
+def test_wrong_password():
+    invalid = authenticate(
+        "release_engineer",
+        "wrongpassword"
+    )
 
-admin = authenticate(
-    "operations_admin",
-    "admin123"
-)
-
-print("\nOperations Admin login:")
-print(admin)
+    assert invalid is None
 
 
-# --------------------------------------------------
-# Test 3 — Wrong password
-# --------------------------------------------------
-
-invalid = authenticate(
-    "release_engineer",
-    "wrongpassword"
-)
-
-print("\nWrong password:")
-print(invalid)
-
-
-# --------------------------------------------------
-# Test permissions
-# --------------------------------------------------
-
-print("\nPermissions:")
-
-print(
-    "Release Engineer → start rollout:",
-    has_permission(
+def test_release_engineer_permissions():
+    assert has_permission(
         "release_engineer",
         "start_rollout"
     )
-)
 
-print(
-    "Release Engineer → configure rules:",
-    has_permission(
+    assert not has_permission(
         "release_engineer",
         "configure_rules"
     )
-)
 
-print(
-    "Operations Admin → configure rules:",
-    has_permission(
+
+def test_operations_admin_permissions():
+    assert has_permission(
         "operations_admin",
         "configure_rules"
     )
-)
 
-print(
-    "Operations Admin → audit logs:",
-    has_permission(
+    assert has_permission(
         "operations_admin",
         "view_audit_logs"
     )
-)
-
-
-# --------------------------------------------------
-# Security test
-# --------------------------------------------------
-
-print("\nSecurity test:")
-
-assert invalid is None
-
-assert has_permission(
-    "release_engineer",
-    "start_rollout"
-)
-
-assert not has_permission(
-    "release_engineer",
-    "configure_rules"
-)
-
-assert has_permission(
-    "operations_admin",
-    "configure_rules"
-)
-
-print("All RBAC tests PASSED")

@@ -8,3 +8,4 @@ __pycache__/
 data/audit_log.json
 data/fallback_queue.json
 data/offline_buffer.json
+data/users.json

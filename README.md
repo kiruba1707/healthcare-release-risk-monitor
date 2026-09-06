@@ -1,96 +1,66 @@
 # Healthcare Release Risk Monitor
 
-A field-ready prototype for monitoring healthcare software releases across multiple hospital deployments.
-
-## Overview
-
-Healthcare software vendors may maintain separate deployments for many hospitals. A release that appears safe in one deployment may behave differently in another deployment.
-
-This project provides a pre-release and progressive-delivery risk monitoring prototype that evaluates deployment health signals and produces one of four decisions:
-
-- SAFE
-- WARNING
-- HOLD
-- BLOCK
-
-The system combines deployment events, infrastructure health metrics, error budgets, canary comparison results, validation, noise handling, fallback behavior, role-based access control, audit logging, and progressive rollout simulation.
-
----
+A healthcare software release risk monitoring and progressive delivery prototype for software vendors managing separate deployments across multiple hospitals.
 
 ## Problem Statement
 
-Release failures may only become visible after a deployment reaches a customer environment.
+Healthcare software vendors may maintain separate deployments for many hospitals. A release can appear healthy during deployment but later cause performance degradation, increased errors, or service instability.
 
-The goal of this project is to detect potential release risk before broader rollout and prevent unsafe deployments from progressing automatically.
-
-The prototype is designed around these safety principles:
-
-1. Validate incoming observations.
-2. Treat missing or unreliable observations conservatively.
-3. Compare stable and canary behavior.
-4. Calculate a configurable risk score.
-5. Convert the score into a release decision.
-6. Control progressive rollout based on that decision.
-7. Maintain fallback and audit information.
-
----
+This project provides a pre-release risk monitoring system that combines deployment signals, system health metrics, error budgets, and canary comparison results to identify potentially harmful releases before wider rollout.
 
 ## Key Features
 
-### Risk Evaluation
+- Multi-hospital deployment monitoring
+- Risk evaluation using multiple telemetry signals
+- Risk decisions:
+  - SAFE
+  - WARNING
+  - HOLD
+  - BLOCK
+- CPU and memory monitoring
+- Error-rate monitoring
+- Latency monitoring
+- Error-budget analysis
+- Stable vs canary error-rate comparison
+- Deployment-status analysis
+- Progressive rollout control
+- Rollout stages:
+  - 5%
+  - 25%
+  - 50%
+  - 100%
+- Missing and noisy observation handling
+- Fallback and store-and-forward support
+- Role-based access control
+- Authentication and account settings
+- Audit logging
+- Configurable risk thresholds and weights
+- Streamlit monitoring dashboard
 
-The risk engine evaluates:
-
-- CPU usage
-- Memory usage
-- Error rate
-- Latency
-- Remaining error budget
-- Canary risk
-- Deployment status
-
-Each signal contributes configurable risk points.
-
-### Risk Decisions
-
-The system produces:
-
-| Decision | Meaning |
-|---|---|
-| SAFE | Release can proceed |
-| WARNING | Manual review is required |
-| HOLD | Rollout is paused for safety |
-| BLOCK | Release must not proceed |
-
-Missing or noisy monitoring data results in a HOLD decision.
-
-Critical canary failure results in BLOCK.
-
----
-
-## Progressive Delivery
-
-The prototype models progressive rollout using four stages:
+## System Architecture
 
 ```text
-5% → 25% → 50% → 100%
-
-## Evaluation Scope and Limitations
-
-The evaluation in this project is based on a synthetic dataset containing
-5,000 simulated hospital deployment records.
-
-The dataset was generated to represent different deployment conditions,
-including healthy, degraded, noisy, and harmful release scenarios.
-
-The reported metrics such as precision, recall, false-positive rate, and
-harmful-release detection are therefore prototype evaluation results on
-simulated data.
-
-They should not be interpreted as production, clinical, or real-world
-hospital performance measurements.
-
-In a production environment, the system would require validation using
-real deployment telemetry, historical incidents, organization-specific
-thresholds, and controlled rollout data before being used for operational
-release decisions.
+Deployment Events
+       |
+       v
+Data Validation
+       |
+       v
+Noise Handling
+       |
+       +-------------------+
+       |                   |
+       v                   v
+Error Budget          Canary Analysis
+       |                   |
+       +---------+---------+
+                 |
+                 v
+           Risk Engine
+                 |
+                 v
+       SAFE / WARNING / HOLD / BLOCK
+                 |
+                 v
+      Progressive Delivery
+        5% -> 25% -> 50% -> 100%

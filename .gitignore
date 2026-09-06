@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.streamlit/secrets.toml
+.env
+data/audit_log.json
+data/fallback_queue.json
+data/offline_buffer.json

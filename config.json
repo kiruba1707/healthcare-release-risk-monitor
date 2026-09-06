@@ -1,0 +1,31 @@
+{
+    "thresholds": {
+        "cpu_warning": 80,
+        "cpu_critical": 90,
+
+        "memory_warning": 80,
+        "memory_critical": 90,
+
+        "error_rate_warning": 3,
+        "error_rate_critical": 5,
+
+        "latency_warning": 300,
+        "latency_critical": 500,
+
+        "error_budget_low": 30,
+        "error_budget_critical": 10,
+
+        "risk_warning": 30,
+        "risk_block": 60
+    },
+
+    "weights": {
+        "cpu": 10,
+        "memory": 10,
+        "error_rate": 20,
+        "latency": 15,
+        "error_budget": 20,
+        "canary": 20,
+        "deployment": 5
+    }
+}

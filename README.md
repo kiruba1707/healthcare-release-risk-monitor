@@ -74,3 +74,23 @@ The prototype models progressive rollout using four stages:
 
 ```text
 5% → 25% → 50% → 100%
+
+## Evaluation Scope and Limitations
+
+The evaluation in this project is based on a synthetic dataset containing
+5,000 simulated hospital deployment records.
+
+The dataset was generated to represent different deployment conditions,
+including healthy, degraded, noisy, and harmful release scenarios.
+
+The reported metrics such as precision, recall, false-positive rate, and
+harmful-release detection are therefore prototype evaluation results on
+simulated data.
+
+They should not be interpreted as production, clinical, or real-world
+hospital performance measurements.
+
+In a production environment, the system would require validation using
+real deployment telemetry, historical incidents, organization-specific
+thresholds, and controlled rollout data before being used for operational
+release decisions.

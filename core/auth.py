@@ -1,6 +1,8 @@
 import hashlib
+import hmac
 import json
 import os
+import secrets
 
 
 USERS_FILE = "data/users.json"
@@ -8,24 +10,100 @@ USERS_FILE = "data/users.json"
 
 DEFAULT_USERS = {
     "release_engineer": {
-        "password_hash": hashlib.sha256(
-            "release123".encode()
-        ).hexdigest(),
+        "password_hash": None,
         "role": "release_engineer"
     },
-
     "operations_admin": {
-        "password_hash": hashlib.sha256(
-            "admin123".encode()
-        ).hexdigest(),
+        "password_hash": None,
         "role": "operations_admin"
     }
 }
 
 
+ROLE_PERMISSIONS = {
+    "release_engineer": {
+        "view_releases",
+        "evaluate_release",
+        "start_rollout",
+        "stop_rollout"
+    },
+    "operations_admin": {
+        "view_releases",
+        "evaluate_release",
+        "start_rollout",
+        "stop_rollout",
+        "configure_rules",
+        "view_audit_logs",
+        "view_system_status"
+    }
+}
+
+
+def _hash_password(password, salt=None):
+    if salt is None:
+        salt = secrets.token_bytes(16)
+
+    password_hash = hashlib.pbkdf2_hmac(
+        "sha256",
+        password.encode("utf-8"),
+        salt,
+        200_000
+    )
+
+    return (
+        salt.hex(),
+        password_hash.hex()
+    )
+
+
+def _verify_password(password, stored_hash):
+    try:
+        salt_hex, expected_hash = stored_hash.split("$", 1)
+
+        salt = bytes.fromhex(salt_hex)
+
+        actual_hash = hashlib.pbkdf2_hmac(
+            "sha256",
+            password.encode("utf-8"),
+            salt,
+            200_000
+        ).hex()
+
+        return hmac.compare_digest(
+            actual_hash,
+            expected_hash
+        )
+
+    except (ValueError, TypeError):
+        return False
+
+
+def _make_stored_hash(password):
+    salt_hex, password_hash = _hash_password(password)
+
+    return f"{salt_hex}${password_hash}"
+
+
 def _load_users():
     if not os.path.exists(USERS_FILE):
-        return DEFAULT_USERS.copy()
+        users = {}
+
+        for username, data in DEFAULT_USERS.items():
+            default_password = (
+                "release123"
+                if username == "release_engineer"
+                else "admin123"
+            )
+
+            users[username] = {
+                "password_hash": _make_stored_hash(
+                    default_password
+                ),
+                "role": data["role"]
+            }
+
+        _save_users(users)
+        return users
 
     try:
         with open(USERS_FILE, "r") as file:
@@ -37,7 +115,7 @@ def _load_users():
     except (json.JSONDecodeError, OSError):
         pass
 
-    return DEFAULT_USERS.copy()
+    return {}
 
 
 def _save_users(users):
@@ -53,13 +131,12 @@ def authenticate(username, password):
     if username not in users:
         return None
 
-    password_hash = hashlib.sha256(
-        password.encode()
-    ).hexdigest()
-
     user = users[username]
 
-    if password_hash == user["password_hash"]:
+    if _verify_password(
+        password,
+        user["password_hash"]
+    ):
         return {
             "username": username,
             "role": user["role"]
@@ -79,11 +156,10 @@ def change_credentials(
     if current_username not in users:
         return False, "Current username not found."
 
-    current_hash = hashlib.sha256(
-        current_password.encode()
-    ).hexdigest()
-
-    if users[current_username]["password_hash"] != current_hash:
+    if not _verify_password(
+        current_password,
+        users[current_username]["password_hash"]
+    ):
         return False, "Current password is incorrect."
 
     target_username = (
@@ -99,39 +175,17 @@ def change_credentials(
     if not new_password:
         new_password = current_password
 
-    new_hash = hashlib.sha256(
-        new_password.encode()
-    ).hexdigest()
-
     user_data = users.pop(current_username)
 
-    user_data["password_hash"] = new_hash
+    user_data["password_hash"] = _make_stored_hash(
+        new_password
+    )
 
     users[target_username] = user_data
 
     _save_users(users)
 
     return True, target_username
-
-
-ROLE_PERMISSIONS = {
-    "release_engineer": {
-        "view_releases",
-        "evaluate_release",
-        "start_rollout",
-        "stop_rollout"
-    },
-
-    "operations_admin": {
-        "view_releases",
-        "evaluate_release",
-        "start_rollout",
-        "stop_rollout",
-        "configure_rules",
-        "view_audit_logs",
-        "view_system_status"
-    }
-}
 
 
 def has_permission(role, permission):
